@@ -13,8 +13,7 @@ async function getRentals() {
     price: rental.price ? rental.price.toNumber() : null,
     rent: rental.rent ? rental.rent.toNumber() : null,
   }));
-
-  console.log("Rentals:", rentalsWithNumbers);
+  // console.log("Rentals:", rentalsWithNumbers);
   return rentalsWithNumbers;
 }
 
@@ -35,6 +34,7 @@ export default async function SearchPage() {
         <ApartmentCard
           key={p.id}
           apartment={{
+            id: p.id,
             price: p.price,
             rent: p.rent,
             title: p.title,
@@ -42,7 +42,7 @@ export default async function SearchPage() {
             rooms: p.rooms,
             meterage: p.meterage,
             longDescription: p.longDescription || 'No description available',
-            images: p.images || []
+            images: p.images || [],
           }}
         />
       ))}

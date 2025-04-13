@@ -7,13 +7,14 @@ import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import Link from 'next/link';
 
 interface Apartment {
+    id: number;
     price: number;
     rent?: number;
     title: string;
     location: string;
     rooms: number;
     meterage: number;
-    longDescription?: string; // Make this optional
+    longDescription?: string;
     url?: string;
     images: string[];
 }
@@ -37,7 +38,7 @@ export default function ApartmentCard({ apartment }: ApartmentCardProps) {
     }, [apartment.longDescription]);
 
     const navigateToDetail = () => {
-        router.push(`/detail-view`);
+        router.push(`/detail-view/${apartment.id}`);
     };
 
     return (
