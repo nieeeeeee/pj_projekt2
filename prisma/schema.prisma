@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Rental {
+  id          Int           @id @default(autoincrement())
+  price       Decimal?      @db.Decimal(10, 2)
+  rent        Decimal?      @db.Decimal(10, 2)
+  title       String?       @db.VarChar(511)
+  location    String?       @db.VarChar(511)
+  rooms       Int?
+  meterage    Int?
+  description String?
+  images      RentalImage[] @relation("RentalToImages")
+
+  @@map("rentals")
+}
+
+model RentalImage {
+  id       Int     @id @default(autoincrement())
+  rentalId Int?    @map("rental_id")
+  image    String?
+  rental   Rental? @relation("RentalToImages", fields: [rentalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("rental_images")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String?   @db.VarChar(255)
+  email         String?   @db.VarChar(255)
+  emailVerified DateTime? @db.Timestamptz(6)
+  image         String?
+
+  @@map("users")
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  expires      DateTime @db.Timestamptz(6)
+  sessionToken String   @db.VarChar(255)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String  @db.VarChar(255)
+  provider          String  @db.VarChar(255)
+  providerAccountId String  @db.VarChar(255)
+  refresh_token     String?
+  access_token      String?
+  expires_at        BigInt?
+  id_token          String?
+  scope             String?
+  session_state     String?
+  token_type        String?
+
+  @@map("accounts")
+}
+
+model VerificationToken {
+  identifier String
+  expires    DateTime @db.Timestamptz(6)
+  token      String
+
+  @@id([identifier, token])
+  @@map("verification_token")
+}
