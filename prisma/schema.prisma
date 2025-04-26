@@ -33,21 +33,30 @@ model RentalImage {
 model User {
   id            Int       @id @default(autoincrement())
   name          String?   @db.VarChar(255)
-  email         String?   @db.VarChar(255)
+  email         String    @unique @db.VarChar(255)
+  password      String    @db.VarChar(255)
   emailVerified DateTime? @db.Timestamptz(6)
   image         String?
 
+  accounts      Account[] // Add this!
+  sessions      Session[] // Add this!
+
   @@map("users")
 }
+
+
 
 model Session {
   id           Int      @id @default(autoincrement())
   userId       Int
   expires      DateTime @db.Timestamptz(6)
-  sessionToken String   @db.VarChar(255)
+  sessionToken String   @unique @db.VarChar(255) // Added @unique
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade) // Relation!
 
   @@map("sessions")
 }
+
 
 model Account {
   id                Int     @id @default(autoincrement())
@@ -55,21 +64,25 @@ model Account {
   type              String  @db.VarChar(255)
   provider          String  @db.VarChar(255)
   providerAccountId String  @db.VarChar(255)
-  refresh_token     String?
-  access_token      String?
-  expires_at        BigInt?
-  id_token          String?
-  scope             String?
-  session_state     String?
-  token_type        String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  id_token          String? @db.Text
+  scope             String? @db.Text
+  session_state     String? @db.Text
+  token_type        String? @db.VarChar(255)
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
   @@map("accounts")
 }
+
 
 model VerificationToken {
   identifier String
   expires    DateTime @db.Timestamptz(6)
-  token      String
+  token      String   @unique
 
   @@id([identifier, token])
   @@map("verification_token")

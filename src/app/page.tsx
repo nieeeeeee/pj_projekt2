@@ -16,7 +16,7 @@ const mockUser = {
 export default function Home() {
     return (
         <>
-            <Navbar currentPage={1} isLoggedIn={true} user={mockUser} />
+            <Navbar currentPage={1} isLoggedIn={false}/>
 
 
         </>
