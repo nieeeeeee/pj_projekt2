@@ -38,8 +38,8 @@ model User {
   emailVerified DateTime? @db.Timestamptz(6)
   image         String?
 
-  accounts      Account[] // Add this!
-  sessions      Session[] // Add this!
+  accounts      Account[]
+  sessions      Session[]
 
   @@map("users")
 }
@@ -50,9 +50,9 @@ model Session {
   id           Int      @id @default(autoincrement())
   userId       Int
   expires      DateTime @db.Timestamptz(6)
-  sessionToken String   @unique @db.VarChar(255) // Added @unique
+  sessionToken String   @unique @db.VarChar(255)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade) // Relation!
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
