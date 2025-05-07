@@ -1,7 +1,10 @@
-import NextAuth from 'next-auth';
+import { getServerSession } from 'next-auth';
 import { authOptions } from './config';
 
-// Directly use authOptions with NextAuth
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+// Export authOptions for use in the route handler
+export { authOptions };
+
+// Export auth function for server-side session access
+export const auth = async () => {
+  return await getServerSession(authOptions);
+};

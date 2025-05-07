@@ -5,7 +5,7 @@ import React from "react";
 import Image from "next/image";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-export default function Navbar(props: { currentPage: number; isLoggedIn: boolean; user: User }) {
+export default function Navbar(props: { currentPage: number; isLoggedIn: boolean; user?: User }) {
     return (
         <nav className="navbar navbar-expand-lg bg-body-tertiary">
             <div className="container-fluid">
@@ -45,7 +45,7 @@ export default function Navbar(props: { currentPage: number; isLoggedIn: boolean
                         {props.isLoggedIn ? (
                             <li className="nav-item">
                                 <Link className="nav-link" href="/account">
-                                    Witaj, {props.user.name}
+                                    Witaj, {props.user?.name || 'User'}
                                 </Link>
                             </li>
                         ) : (
