@@ -10,6 +10,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import type { Session } from "next-auth";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
@@ -27,7 +28,17 @@ import { db } from "~/server/db";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth();
+  // Use a try-catch to handle potential errors from auth()
+  let session: Session | null = null;
+  try {
+    // Use a more robust approach to handle auth() call
+    const getAuth = auth as () => Promise<Session | null>;
+    session = await getAuth();
+  } catch (error) {
+    console.error("Error getting auth session:", error);
+    // Ensure session is null in case of error
+    session = null;
+  }
 
   return {
     db,
@@ -124,10 +135,14 @@ export const protectedProcedure = t.procedure
     if (!ctx.session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
+
+    // Ensure user is properly typed
+    const user = ctx.session.user as { id: string; name?: string | null; email?: string | null };
+
     return next({
       ctx: {
         // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
+        session: { ...ctx.session, user },
       },
     });
   });

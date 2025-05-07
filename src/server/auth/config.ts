@@ -1,7 +1,8 @@
-import type { NextAuthOptions } from "next-auth"; // ✅ FIX 1: use type import
+import type { NextAuthOptions, Session } from "next-auth"; // ✅ FIX 1: use type import
+import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { db as prisma } from "~/server/db"; // ✅ ensure this points to your Prisma client
+import { db } from "~/server/db"; // ✅ ensure this points to your Prisma client
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -18,11 +19,11 @@ export const authOptions: NextAuthOptions = {
 
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({
+        const user = await db.user.findUnique({
           where: { email },
         });
 
-        if (!user || !user.password) return null;
+        if (!user?.password) return null;
 
         const isValid = await compare(password, user.password);
         if (!isValid) return null;
@@ -39,7 +40,7 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.sub) {
         session.user.id = token.sub; // ✅ FIX 3: manually extend user if needed
       }

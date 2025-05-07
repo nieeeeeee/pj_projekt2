@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import Navbar from '~/app/_components/Navbar';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+interface RegisterResponse {
+  message?: string;
+}
+
 const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -25,13 +29,13 @@ const RegisterPage: React.FC = () => {
         body: JSON.stringify({ email, name, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json() as RegisterResponse;
 
       if (res.ok) {
         alert('Registration successful! Please log in.');
         router.push('/login');
       } else {
-        setError(data.message || `Error: ${res.status} ${res.statusText}`);
+        setError(data.message ?? `Error: ${res.status} ${res.statusText}`);
         console.error('Registration failed:', data);
       }
     } catch (err) {

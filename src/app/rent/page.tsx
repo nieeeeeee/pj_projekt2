@@ -1,12 +1,11 @@
 import Navbar from '~/app/_components/Navbar';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import ApartmentCard from "~/app/_components/ApartmentCard";
-import { PrismaClient } from "@prisma/client";
+import { db } from "~/server/db";
 import ClientSearch from "~/app/_components/ClientSearch";
 
 async function getRentals() {
-  const prisma = new PrismaClient();
-  const rentals = await prisma.rental.findMany();
+  const rentals = await db.rental.findMany();
 
   const rentalsWithNumbers = rentals.map((rental) => ({
     ...rental,
@@ -41,8 +40,8 @@ export default async function SearchPage() {
             location: p.location,
             rooms: p.rooms,
             meterage: p.meterage,
-            longDescription: p.longDescription || 'No description available',
-            images: p.images || [],
+            longDescription: p.longDescription && typeof p.longDescription === 'string' ? p.longDescription as string : 'No description available',
+            images: Array.isArray(p.images) ? p.images as string[] : [],
           }}
         />
       ))}

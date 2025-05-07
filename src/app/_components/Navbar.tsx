@@ -1,7 +1,8 @@
 'use client';
 import Link from "next/link";
-import { User } from "next-auth";
+import type { User } from "next-auth";
 import React from "react";
+import Image from "next/image";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default function Navbar(props: { currentPage: number; isLoggedIn: boolean; user: User }) {
@@ -9,7 +10,7 @@ export default function Navbar(props: { currentPage: number; isLoggedIn: boolean
         <nav className="navbar navbar-expand-lg bg-body-tertiary">
             <div className="container-fluid">
                 <Link className="navbar-brand" href="/">
-                    <img src="/favicon.ico" alt="Logo" />
+                    <Image src="/favicon.ico" alt="Logo" width={32} height={32} />
                 </Link>
                 <button
                     className="navbar-toggler"

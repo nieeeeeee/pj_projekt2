@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
-import Link from 'next/link';
+import Image from 'next/image';
 
 interface Apartment {
     id: number;
@@ -70,7 +70,7 @@ export default function ApartmentCard({ apartment }: ApartmentCardProps) {
                     }}
                   >
                       <p ref={contentRef} className="whitespace-pre-line">
-                          {apartment.longDescription || 'No description available'}
+                          {apartment.longDescription ?? 'No description available'}
                       </p>
 
                       {!isExpanded && isOverflowing && (
@@ -89,10 +89,12 @@ export default function ApartmentCard({ apartment }: ApartmentCardProps) {
                       <Carousel showThumbs={false} infiniteLoop autoPlay>
                           {apartment.images.map((image, index) => (
                             <div key={index}>
-                                <img
+                                <Image
                                   src={image}
                                   alt={`Apartment ${index + 1}`}
                                   className="rounded-lg w-100"
+                                  width={300}
+                                  height={200}
                                   style={{ maxHeight: '300px', objectFit: 'cover' }}
                                 />
                             </div>

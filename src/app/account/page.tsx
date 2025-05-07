@@ -4,6 +4,7 @@ import Cookies from 'js-cookie';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Navbar from "~/app/_components/Navbar";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Reservation {
     id: string;
@@ -27,20 +28,23 @@ const AccountPage = () => {
         const savedDates = Cookies.get('selectedDates');
         if (savedDates) {
             try {
-                const [start, end] = JSON.parse(savedDates);
+                const parsed = JSON.parse(savedDates) as [string, string];
+                if (Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === 'string' && typeof parsed[1] === 'string') {
+                    const [start, end] = parsed;
 
-                const mockReservation: Reservation = {
-                    id: '1',
-                    propertyId: 'sample-1',
-                    propertyTitle: 'Dom 6 pokoi Wrocław Ołtaszyn, Ułańska bezpośrednio',
-                    startDate: new Date(start),
-                    endDate: new Date(end),
-                    price: 6000,
-                    location: 'Ołtaszyn, Krzyki, Wrocław, dolnośląskie',
-                    image: 'https://tinyurl.com/4457spk8'
-                };
+                    const mockReservation: Reservation = {
+                        id: '1',
+                        propertyId: 'sample-1',
+                        propertyTitle: 'Dom 6 pokoi Wrocław Ołtaszyn, Ułańska bezpośrednio',
+                        startDate: new Date(start),
+                        endDate: new Date(end),
+                        price: 6000,
+                        location: 'Ołtaszyn, Krzyki, Wrocław, dolnośląskie',
+                        image: 'https://tinyurl.com/4457spk8'
+                    };
 
-                setReservations([mockReservation]);
+                    setReservations([mockReservation]);
+                }
             } catch (error) {
                 console.error("Error parsing saved dates:", error);
             }
@@ -74,12 +78,16 @@ const AccountPage = () => {
                         <div className="card mb-4">
                             <div className="card-body">
                                 <div className="d-flex flex-column align-items-center text-center">
-                                    <img
-                                        src="https://tinyurl.com/yfx35v7h"
-                                        alt="User"
-                                        className="rounded-circle"
-                                        width="150"
-                                    />
+                                    <div className="position-relative" style={{ width: '150px', height: '150px' }}>
+                                        <Image
+                                            src="https://tinyurl.com/yfx35v7h"
+                                            alt="User"
+                                            className="rounded-circle"
+                                            fill
+                                            sizes="150px"
+                                            style={{ objectFit: 'cover' }}
+                                        />
+                                    </div>
                                     <div className="mt-3">
                                         <h4>User</h4>
                                         <p className="text-muted font-size-sm">user@example.com</p>
@@ -125,12 +133,16 @@ const AccountPage = () => {
                                         <div key={reservation.id} className="card mb-3">
                                             <div className="row g-0">
                                                 <div className="col-md-4">
-                                                    <img
-                                                        src={reservation.image}
-                                                        alt={reservation.propertyTitle}
-                                                        className="img-fluid rounded-start h-100 object-fit-cover"
-                                                        style={{ maxHeight: '200px', width: '100%', objectFit: 'cover' }}
-                                                    />
+                                                    <div className="position-relative" style={{ height: '200px' }}>
+                                                        <Image
+                                                            src={reservation.image}
+                                                            alt={reservation.propertyTitle}
+                                                            className="rounded-start"
+                                                            fill
+                                                            sizes="(max-width: 768px) 100vw, 33vw"
+                                                            style={{ objectFit: 'cover' }}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="col-md-8">
                                                     <div className="card-body">

@@ -42,8 +42,11 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
     const savedDates = Cookies.get('selectedDates');
     if (savedDates) {
       try {
-        const [start, end] = JSON.parse(savedDates);
-        setSelectedDates([new Date(start), new Date(end)]);
+        const parsed = JSON.parse(savedDates) as [string, string];
+        if (Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === 'string' && typeof parsed[1] === 'string') {
+          const [start, end] = parsed;
+          setSelectedDates([new Date(start), new Date(end)]);
+        }
       } catch (error) {
         console.error("Error parsing saved dates:", error);
       }

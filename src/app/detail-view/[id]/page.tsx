@@ -1,8 +1,6 @@
 // app/detail-view/[id]/page.tsx
-import { PrismaClient } from '@prisma/client';
 import PropertyListingPage from '~/app/_components/PropertyListingPage';
-
-const prisma = new PrismaClient();
+import { db } from '~/server/db';
 
 export default async function DetailPage(context: { params: { id: string } }) {
     const id = parseInt(context.params.id);
@@ -11,7 +9,7 @@ export default async function DetailPage(context: { params: { id: string } }) {
         return <div>Invalid ID</div>;
     }
 
-    const rental = await prisma.rental.findUnique({
+    const rental = await db.rental.findUnique({
         where: { id },
     });
 
@@ -29,7 +27,7 @@ export default async function DetailPage(context: { params: { id: string } }) {
         status: "Wolne",
         heating: "Gazowe",
         landlord: "Właściciel",
-        images: rental.images ?? [],
+        images: Array.isArray(rental.images) ? rental.images as string[] : [],
     };
 
     return <PropertyListingPage data={apartmentData} />;
