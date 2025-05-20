@@ -3,31 +3,32 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import ApartmentCard from "~/app/_components/ApartmentCard";
 import { db } from "~/server/db";
 import ClientSearch from "~/app/_components/ClientSearch";
+import { getServerSession } from "next-auth"; // ✅
+import { authOptions } from "~/server/auth"; // ✅
 
 async function getRentals() {
   const rentals = await db.rental.findMany();
 
-  const rentalsWithNumbers = rentals.map((rental) => ({
+  return rentals.map((rental) => ({
     ...rental,
-    price: rental.price ? rental.price.toNumber() : null,
-    rent: rental.rent ? rental.rent.toNumber() : null,
+    price: rental.price?.toNumber() ?? null,
+    rent: rental.rent?.toNumber() ?? null,
   }));
-  // console.log("Rentals:", rentalsWithNumbers);
-  return rentalsWithNumbers;
 }
 
 export default async function SearchPage() {
   const rentalsWithNumbers = await getRentals();
-
-  console.log('Rentals:', rentalsWithNumbers);
+  const session = await getServerSession(authOptions); // ✅ Get user session on server
+  const isLoggedIn = !!session?.user;
 
   const cities = [
-    'Warszawa', 'Kraków', 'Łódź', 'Wrocław', 'Poznań', 'Gdańsk', 'Szczecin', 'Bydgoszcz', 'Lublin', 'Katowice'
+    'Warszawa', 'Kraków', 'Łódź', 'Wrocław', 'Poznań',
+    'Gdańsk', 'Szczecin', 'Bydgoszcz', 'Lublin', 'Katowice'
   ];
 
   return (
     <div>
-      <Navbar currentPage={1} isLoggedIn={false} user={{ name: 'Guest', email: '' }} />
+      <Navbar isLoggedIn={isLoggedIn} user={session?.user} /> {/* ✅ Pass to Navbar */}
       <ClientSearch cities={cities} />
       {rentalsWithNumbers.map((p) => (
         <ApartmentCard
@@ -40,8 +41,8 @@ export default async function SearchPage() {
             location: p.location,
             rooms: p.rooms,
             meterage: p.meterage,
-            longDescription: p.longDescription && typeof p.longDescription === 'string' ? p.longDescription as string : 'No description available',
-            images: Array.isArray(p.images) ? p.images as string[] : [],
+            longDescription: typeof p.longDescription === 'string' ? p.longDescription : 'No description available',
+            images: Array.isArray(p.images) ? p.images : [],
           }}
         />
       ))}

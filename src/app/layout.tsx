@@ -1,21 +1,17 @@
-import { ReactNode } from 'react'
-import SessionWrapper from './_components/SessionWrapper'
+import { Providers } from './providers';
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'balls',
-  description: 'balls',
-}
+export const metadata: Metadata = {
+  title: 'Your App',
+  description: 'Your app description',
+};
 
-export default function RootLayout({
-                                     children,
-                                   }: {
-  children: ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
     <body>
-    <SessionWrapper>{children}</SessionWrapper>
+    <Providers>{children}</Providers>
     </body>
     </html>
-  )
+  );
 }

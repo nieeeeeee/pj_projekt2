@@ -9,7 +9,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 export default function Home() {
     return (
         <>
-            <Navbar currentPage={1} isLoggedIn={false}/>
+          <Navbar />
 
 
         </>

@@ -1,6 +1,7 @@
 'use client';
 
 import Navbar from "~/app/_components/Navbar";
+import React from "react";
 
 const mockUser = {
     name: "John Doe",
@@ -10,8 +11,7 @@ const mockUser = {
 export default function AboutUs() {
     return (
         <>
-            <Navbar currentPage={1} isLoggedIn={false} user={mockUser} />
-
+            <Navbar isLoggedIn={isLoggedIn} user={session?.user} currentPage={-1}></Navbar>
             <div className="container d-flex flex-column justify-content-between min-vh-100 py-5">
                 {/* About Us Content */}
                 <div className="card shadow-lg p-5 mx-auto" style={{ maxWidth: "800px" }}>

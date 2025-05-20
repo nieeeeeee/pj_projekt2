@@ -1,8 +1,11 @@
+
 "use client";
-
-import { useState } from "react";
-
+import 'bootstrap/dist/css/bootstrap.min.css';
+import React, { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
+import Navbar from "~/app/_components/Navbar";
 export default function RentPage() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -10,12 +13,37 @@ export default function RentPage() {
   const [rent, setRent] = useState("");
   const [rooms, setRooms] = useState("");
   const [meterage, setMeterage] = useState("");
-  const [images, setImages] = useState<string[]>([]); // base64 strings
+  const [images, setImages] = useState([]);
 
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState(null);
+
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn && isLoggedIn !== null) {
+      router.push('/');
+    }
+  }, [isLoggedIn, router]);
+
+
 
   // Convert uploaded files to base64 strings
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -23,18 +51,18 @@ export default function RentPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (reader.result && typeof reader.result === "string") {
-          setImages((prev) => [...prev, reader.result!]);
+          setImages((prev) => [...prev, reader.result]);
         }
       };
       reader.readAsDataURL(file);
     });
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = (index) => {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const payload = {
@@ -45,7 +73,7 @@ export default function RentPage() {
       rent: rent ? Number(rent) : null,
       rooms: rooms ? Number(rooms) : null,
       meterage: meterage ? Number(meterage) : null,
-      images, // base64 encoded images
+      images,
     };
 
     try {
@@ -59,7 +87,6 @@ export default function RentPage() {
 
       if (res.ok) {
         setMessage("Rental listing created successfully!");
-        // Reset form
         setTitle("");
         setDescription("");
         setLocation("");
@@ -72,122 +99,146 @@ export default function RentPage() {
         setMessage(data.message || "Something went wrong");
       }
     } catch (error) {
-      setMessage("Failed to create rental listing");
+      setMessage('Failed to create rental listing');
     }
   };
 
+
+  if (isLoggedIn === null) {
+    return <div className="text-center my-5">Loading...</div>;
+  }
+
+  if (!isLoggedIn) {
+    return null;
+  }
+
+
   return (
-    <main className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Create Rental Listing</h1>
+    <main className="container my-4">
+      <Navbar />
+
+      <h1 className="mb-4">Create Rental Listing</h1>
       {message && (
-        <div className="mb-4 p-2 bg-blue-200 text-blue-900 rounded">{message}</div>
+        <div className="alert alert-info" role="alert">
+          {message}
+        </div>
       )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-semibold mb-1">Title</label>
+      <form onSubmit={handleSubmit}>
+        <div className="mb-3">
+          <label htmlFor="titleInput" className="form-label">Title</label>
           <input
             type="text"
+            className="form-control"
+            id="titleInput"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             maxLength={511}
             placeholder="Listing title"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Description</label>
+        <div className="mb-3">
+          <label htmlFor="descriptionTextarea" className="form-label">Description</label>
           <textarea
+            className="form-control"
+            id="descriptionTextarea"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             placeholder="Description of the rental"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Location</label>
+        <div className="mb-3">
+          <label htmlFor="locationInput" className="form-label">Location</label>
           <input
             type="text"
+            className="form-control"
+            id="locationInput"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             maxLength={511}
             placeholder="Location"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Price</label>
+        <div className="mb-3">
+          <label htmlFor="priceInput" className="form-label">Price</label>
           <input
             type="number"
+            className="form-control"
+            id="priceInput"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             step="0.01"
             min="0"
             placeholder="Price (decimal)"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Rent</label>
+        <div className="mb-3">
+          <label htmlFor="rentInput" className="form-label">Rent</label>
           <input
             type="number"
+            className="form-control"
+            id="rentInput"
             value={rent}
             onChange={(e) => setRent(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             step="0.01"
             min="0"
             placeholder="Rent (decimal)"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Rooms</label>
+        <div className="mb-3">
+          <label htmlFor="roomsInput" className="form-label">Rooms</label>
           <input
             type="number"
+            className="form-control"
+            id="roomsInput"
             value={rooms}
             onChange={(e) => setRooms(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             min="0"
             placeholder="Number of rooms"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Meterage (m²)</label>
+        <div className="mb-3">
+          <label htmlFor="meterageInput" className="form-label">Meterage (m²)</label>
           <input
             type="number"
+            className="form-control"
+            id="meterageInput"
             value={meterage}
             onChange={(e) => setMeterage(e.target.value)}
-            className="w-full border rounded px-2 py-1"
             min="0"
             placeholder="Area in square meters"
           />
         </div>
 
-        <div>
-          <label className="block font-semibold mb-2">Upload Images</label>
+        <div className="mb-3">
+          <label htmlFor="imageUpload" className="form-label">Upload Images</label>
           <input
             type="file"
+            className="form-control"
+            id="imageUpload"
             accept="image/*"
             multiple
             onChange={handleFileChange}
-            className="mb-2"
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="d-flex flex-wrap gap-2 mt-2">
             {images.map((img, i) => (
-              <div key={i} className="relative">
+              <div key={i} className="position-relative">
                 <img
                   src={img}
                   alt={`upload-${i}`}
-                  className="w-24 h-24 object-cover rounded border"
+                  className="img-thumbnail"
+                  style={{ width: '96px', height: '96px', objectFit: 'cover' }}
                 />
                 <button
                   type="button"
                   onClick={() => removeImage(i)}
-                  className="absolute top-0 right-0 bg-red-600 text-white rounded-full px-1"
+                  className="btn btn-danger btn-sm position-absolute top-0 end-0 translate-middle"
+                  style={{ borderRadius: '50%', width: '24px', height: '24px', padding: '0', fontSize: '0.75rem', lineHeight: '1' }}
                 >
                   &times;
                 </button>
@@ -198,7 +249,7 @@ export default function RentPage() {
 
         <button
           type="submit"
-          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="btn btn-primary mt-3"
         >
           Create Listing
         </button>
