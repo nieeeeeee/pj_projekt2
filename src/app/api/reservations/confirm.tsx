@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "~/server/db"; // adjust import path to your Prisma client
+import { prisma } from "~/server/db";
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,10 +17,8 @@ export default async function handler(
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Save the confirmed reservation to your database
     const confirmedReservation = await prisma.reservation.create({
       data: {
-        // If your Prisma schema uses auto-increment, omit id here or adjust accordingly
         propertyId,
         propertyTitle,
         startDate: new Date(startDate),
@@ -28,8 +26,6 @@ export default async function handler(
         price,
         location,
         image,
-        // If you have user auth session, attach userId here:
-        // userId: req.session?.user?.id || null,
       },
     });
 
