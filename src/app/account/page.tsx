@@ -1,3 +1,5 @@
+// Updated AccountPage.tsx with working layout and functionality
+
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -32,45 +34,6 @@ const AccountPage = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load confirmed reservation (mock from cookie)
-  useEffect(() => {
-    setIsLoading(true);
-
-    const savedDates = Cookies.get("selectedDates");
-    if (savedDates) {
-      try {
-        const parsed = JSON.parse(savedDates) as [string, string];
-        if (
-          Array.isArray(parsed) &&
-          parsed.length === 2 &&
-          typeof parsed[0] === "string" &&
-          typeof parsed[1] === "string"
-        ) {
-          const [start, end] = parsed;
-
-          const mockReservation: Reservation = {
-            id: "1",
-            propertyId: "sample-1",
-            propertyTitle:
-              "Dom 6 pokoi Wrocław Ołtaszyn, Ułańska bezpośrednio",
-            startDate: new Date(start),
-            endDate: new Date(end),
-            price: 6000,
-            location: "Ołtaszyn, Krzyki, Wrocław, dolnośląskie",
-            image: "/placeholder.jpg",
-          };
-
-          setReservations([mockReservation]);
-        }
-      } catch (error) {
-        console.error("Error parsing saved dates:", error);
-      }
-    }
-
-    setIsLoading(false);
-  }, []);
-
-  // Load unconfirmed from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("unconfirmedReservations");
     if (stored) {
@@ -84,58 +47,50 @@ const AccountPage = () => {
       } catch {
         console.warn("Invalid unconfirmed reservation data.");
       }
-    } else {
-      // First-time default
-      const defaultReservation: Reservation = {
-        id: "u1",
-        propertyId: "sample-2",
-        propertyTitle: "Nowe mieszkanie do potwierdzenia",
-        startDate: new Date(),
-        endDate: new Date(),
-        price: 4500,
-        location: "Warszawa, mazowieckie",
-        image: "/placeholder.jpg",
-      };
-      setUnconfirmedReservations([defaultReservation]);
     }
-  }, []);
 
-  // Save unconfirmed to localStorage on change
-  useEffect(() => {
-    localStorage.setItem(
-      "unconfirmedReservations",
-      JSON.stringify(unconfirmedReservations)
-    );
-  }, [unconfirmedReservations]);
-
-  // Close dropdown if clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setDropdownOpen(false);
+    const savedDates = Cookies.get("selectedDates");
+    if (savedDates) {
+      try {
+        const parsed = JSON.parse(savedDates) as [string, string];
+        const [start, end] = parsed;
+        const mockReservation: Reservation = {
+          id: `cookie-${Date.now()}`,
+          propertyId: "1",
+          propertyTitle: "Dom 6 pokoi Wrocław Ołtaszyn",
+          startDate: new Date(start),
+          endDate: new Date(end),
+          price: 6000,
+          location: "Ołtaszyn, Wrocław",
+          image: "",
+        };
+        setUnconfirmedReservations((prev) => [...prev, mockReservation]);
+        Cookies.remove("selectedDates");
+      } catch (error) {
+        console.error("Error parsing saved dates:", error);
       }
     }
 
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("unconfirmedReservations", JSON.stringify(unconfirmedReservations));
+  }, [unconfirmedReservations]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
-  };
+  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
-  const handleCancelReservation = (id: string) => {
-    setReservations(reservations.filter((res) => res.id !== id));
-    Cookies.remove("selectedDates");
-    alert("Rezerwacja została anulowana.");
-  };
-
-  const handleImageChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -156,14 +111,54 @@ const AccountPage = () => {
         }
       }
     };
-
     reader.readAsDataURL(file);
   };
 
   const formatDate = (date: Date) => date.toLocaleDateString("pl-PL");
-  const calculateTotalDays = (startDate: Date, endDate: Date) =>
-    Math.ceil(
-      Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+
+  const handleConfirmPurchase = async (reservation: Reservation) => {
+    try {
+      const res = await fetch("/api/reservations/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rentalId: parseInt(reservation.propertyId),
+          startDate: reservation.startDate,
+          endDate: reservation.endDate,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Błąd: ${data.message || "Nie udało się potwierdzić zakupu."}`);
+        return;
+      }
+
+      alert("Zakup potwierdzony!");
+      setUnconfirmedReservations((prev) => prev.filter((r) => r.id !== reservation.id));
+      setReservations((prev) => [...prev, reservation]);
+    } catch (error) {
+      console.error("Error confirming purchase:", error);
+      alert("Błąd sieci, spróbuj ponownie.");
+    }
+  };
+
+  const renderImageOrFallback = (src: string, alt: string) =>
+    src ? (
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="rounded-start"
+        style={{ objectFit: "cover", height: "200px", width: "100%" }}
+      />
+    ) : (
+      <div
+        className="d-flex align-items-center justify-content-center bg-secondary text-white"
+        style={{ height: "200px", width: "100%" }}
+      >
+        Brak zdjęcia
+      </div>
     );
 
   return (
@@ -171,72 +166,48 @@ const AccountPage = () => {
       <Navbar isLoggedIn={isLoggedIn} user={session?.user} />
       <div className="container py-5">
         <div className="row">
-          {/* SIDEBAR */}
+          {/* Sidebar */}
           <div className="col-md-3">
             <div className="card mb-4">
-              <div className="card-body">
-                <div className="d-flex flex-column align-items-center text-center">
-                  <div
-                    className="position-relative"
-                    style={{ width: "150px", height: "150px" }}
+              <div className="card-body text-center">
+                <div className="position-relative" style={{ width: "150px", height: "150px" }}>
+                  <Image
+                    src={userImage}
+                    alt="User"
+                    fill
+                    className="rounded-circle"
+                    style={{ objectFit: "cover" }}
+                  />
+                </div>
+                <h4 className="mt-3">{session?.user?.name || "Użytkownik"}</h4>
+                <p className="text-muted">{session?.user?.email}</p>
+                <div ref={dropdownRef} className="dropdown">
+                  <button
+                    className="btn btn-sm btn-outline-secondary dropdown-toggle w-100"
+                    onClick={toggleDropdown}
                   >
-                    <Image
-                      src={userImage}
-                      alt="User"
-                      className="rounded-circle"
-                      fill
-                      sizes="150px"
-                      style={{ objectFit: "cover" }}
-                    />
-                  </div>
-
-                  <h4 className="mt-3">{session?.user?.name || "Użytkownik"}</h4>
-                  <p className="text-muted font-size-sm mb-3">
-                    {session?.user?.email}
-                  </p>
-
-                  <div
-                    ref={dropdownRef}
-                    className="dropdown"
-                    style={{ width: "150px" }}
-                  >
-                    <button
-                      className="btn btn-sm btn-outline-secondary dropdown-toggle w-100"
-                      type="button"
-                      onClick={toggleDropdown}
-                      aria-expanded={dropdownOpen}
-                    >
-                      Zmień ikonę
-                    </button>
-                    <ul
-                      className={`dropdown-menu p-2${dropdownOpen ? " show" : ""}`}
-                      style={{ minWidth: "150px" }}
-                    >
-                      <li>
-                        <label className="form-label btn btn-light w-100 m-0">
-                          Wgraj zdjęcie
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="d-none"
-                            onChange={handleImageChange}
-                          />
-                        </label>
-                      </li>
-                    </ul>
-                  </div>
+                    Zmień ikonę
+                  </button>
+                  <ul className={`dropdown-menu p-2${dropdownOpen ? " show" : ""}`}>
+                    <li>
+                      <label className="form-label btn btn-light w-100 m-0">
+                        Wgraj zdjęcie
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="d-none"
+                          onChange={handleImageChange}
+                        />
+                      </label>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
-
             <div className="card">
               <div className="list-group list-group-flush">
-                <a href="#" className="list-group-item list-group-item-action">
-                  Ustawienia konta
-                </a>
-                <a href="#" className="list-group-item list-group-item-action">
-                  Historia płatności
-                </a>
+                <a className="list-group-item list-group-item-action">Ustawienia konta</a>
+                <a className="list-group-item list-group-item-action">Historia płatności</a>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="list-group-item list-group-item-action text-start"
@@ -245,7 +216,6 @@ const AccountPage = () => {
                 </button>
               </div>
             </div>
-
             <div className="mt-3 text-center">
               <Link href="/new" className="btn btn-primary w-100">
                 Dodaj ogłoszenie
@@ -253,72 +223,44 @@ const AccountPage = () => {
             </div>
           </div>
 
-          {/* MAIN */}
+          {/* Main Section */}
           <div className="col-md-9">
-            {/* Confirmed Reservations */}
-            <div className="card">
+            <div className="card mb-4">
               <div className="card-header">
-                <h4 className="mb-0">Twoje rezerwacje</h4>
+                <h4>Twoje nierozpatrzone zakupy</h4>
               </div>
               <div className="card-body">
-                {isLoading ? (
-                  <div className="py-4 text-center">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
-                ) : reservations.length === 0 ? (
-                  <div className="alert alert-info">
-                    Nie masz żadnych aktywnych rezerwacji.
-                  </div>
+                {unconfirmedReservations.length === 0 ? (
+                  <div className="alert alert-info">Brak nierozpatrzonych zakupów.</div>
                 ) : (
-                  reservations.map((reservation) => (
+                  unconfirmedReservations.map((reservation) => (
                     <div key={reservation.id} className="card mb-3">
                       <div className="row g-0">
-                        <div className="col-md-4">
-                          <div
-                            className="position-relative"
-                            style={{ height: "200px" }}
-                          >
-                            <Image
-                              src={reservation.image}
-                              alt={reservation.propertyTitle}
-                              className="rounded-start"
-                              fill
-                              sizes="(max-width: 768px) 100vw, 33vw"
-                              style={{ objectFit: "cover" }}
-                            />
-                          </div>
+                        <div className="col-md-4 position-relative">
+                          {renderImageOrFallback(reservation.image, reservation.propertyTitle)}
                         </div>
                         <div className="col-md-8">
                           <div className="card-body">
-                            <h5 className="card-title">{reservation.propertyTitle}</h5>
-                            <p className="card-text">
-                              <small className="text-muted">
-                                {reservation.location}
-                              </small>
-                            </p>
+                            <h5>{reservation.propertyTitle}</h5>
+                            <p className="text-muted">{reservation.location}</p>
                             <span className="badge bg-primary mb-2">
-                              {formatDate(reservation.startDate)} -{" "}
-                              {formatDate(reservation.endDate)}
+                              {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
                             </span>
-                            <p className="card-text fw-bold text-success mb-3">
+                            <p className="fw-bold text-success">
                               {reservation.price} zł / miesiąc
                             </p>
-                            <div className="d-flex justify-content-between">
-                              <Link
-                                className="btn btn-outline-primary"
-                                href="/detail-view"
-                              >
-                                Zobacz szczegóły
-                              </Link>
-                              <button
-                                className="btn btn-outline-danger"
-                                onClick={() => handleCancelReservation(reservation.id)}
-                              >
-                                Anuluj rezerwację
-                              </button>
-                            </div>
+                            <button
+                              className="btn btn-success me-2"
+                              onClick={() => handleConfirmPurchase(reservation)}
+                            >
+                              Potwierdź
+                            </button>
+                            <button
+                              className="btn btn-outline-danger"
+                              onClick={() => setUnconfirmedReservations(prev => prev.filter(r => r.id !== reservation.id))}
+                            >
+                              Anuluj
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -328,72 +270,32 @@ const AccountPage = () => {
               </div>
             </div>
 
-            {/* Unconfirmed Purchases */}
-            <div className="card mt-4">
+            <div className="card">
               <div className="card-header">
-                <h4 className="mb-0">Twoje niezrealizowane zakupy</h4>
+                <h4>Twoje rezerwacje</h4>
               </div>
               <div className="card-body">
-                {unconfirmedReservations.length === 0 ? (
+                {reservations.length === 0 ? (
                   <div className="alert alert-info">
-                    Brak niezrealizowanych zakupów.
+                    Nie masz żadnych aktywnych rezerwacji.
                   </div>
                 ) : (
-                  unconfirmedReservations.map((reservation) => (
+                  reservations.map((reservation) => (
                     <div key={reservation.id} className="card mb-3">
                       <div className="row g-0">
-                        <div className="col-md-4">
-                          <div
-                            className="position-relative"
-                            style={{ height: "200px" }}
-                          >
-                            <Image
-                              src={reservation.image}
-                              alt={reservation.propertyTitle}
-                              className="rounded-start"
-                              fill
-                              sizes="(max-width: 768px) 100vw, 33vw"
-                              style={{ objectFit: "cover" }}
-                            />
-                          </div>
+                        <div className="col-md-4 position-relative">
+                          {renderImageOrFallback(reservation.image, reservation.propertyTitle)}
                         </div>
                         <div className="col-md-8">
                           <div className="card-body">
-                            <h5 className="card-title">{reservation.propertyTitle}</h5>
-                            <p className="card-text">
-                              <small className="text-muted">
-                                {reservation.location}
-                              </small>
-                            </p>
-                            <span className="badge bg-warning text-dark mb-2">
-                              W oczekiwaniu na potwierdzenie
+                            <h5>{reservation.propertyTitle}</h5>
+                            <p className="text-muted">{reservation.location}</p>
+                            <span className="badge bg-primary mb-2">
+                              {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
                             </span>
-                            <p className="card-text fw-bold text-success mb-3">
+                            <p className="fw-bold text-success">
                               {reservation.price} zł / miesiąc
                             </p>
-                            <div className="d-flex justify-content-between">
-                              <button
-                                className="btn btn-success"
-                                onClick={() => {
-                                  alert("Zakup potwierdzony!");
-                                  setUnconfirmedReservations((prev) =>
-                                    prev.filter((r) => r.id !== reservation.id)
-                                  );
-                                }}
-                              >
-                                Potwierdź zakup
-                              </button>
-                              <button
-                                className="btn btn-outline-danger"
-                                onClick={() =>
-                                  setUnconfirmedReservations((prev) =>
-                                    prev.filter((r) => r.id !== reservation.id)
-                                  )
-                                }
-                              >
-                                Anuluj
-                              </button>
-                            </div>
                           </div>
                         </div>
                       </div>
