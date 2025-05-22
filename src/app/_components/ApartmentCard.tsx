@@ -16,7 +16,7 @@ interface Apartment {
     meterage: number;
     longDescription?: string;
     url?: string;
-    images: string[];
+    images: string[]; // base64 image strings or full data URIs
 }
 
 interface ApartmentCardProps {
@@ -24,8 +24,6 @@ interface ApartmentCardProps {
 }
 
 export default function ApartmentCard({ apartment }: ApartmentCardProps) {
-    console.log('Apartment Data:', apartment); // Debugging line
-
     const [isExpanded, setIsExpanded] = useState(false);
     const contentRef = useRef<HTMLParagraphElement>(null);
     const [isOverflowing, setIsOverflowing] = useState(false);
@@ -62,10 +60,10 @@ export default function ApartmentCard({ apartment }: ApartmentCardProps) {
                   </div>
 
                   <div
-                    className={`relative text-gray-600 text-sm leading-relaxed overflow-hidden transition-all duration-500 ease-in-out`}
+                    className="relative text-gray-600 text-sm leading-relaxed overflow-hidden transition-all duration-500 ease-in-out"
                     style={{ maxHeight: isExpanded ? 'none' : '96px' }}
                     onClick={(e) => {
-                        e.stopPropagation();
+                        e.stopPropagation(); // so clicking description toggle won't navigate
                         setIsExpanded(!isExpanded);
                     }}
                   >
@@ -81,28 +79,33 @@ export default function ApartmentCard({ apartment }: ApartmentCardProps) {
 
               <div
                 className="col-md-4 p-4 d-flex justify-content-center align-items-center"
-                onClick={(e) => {
-                    e.stopPropagation();
-                }}
+                onClick={(e) => e.stopPropagation()} // Prevent navigation on carousel clicks
               >
                   <div className="relative rounded-lg overflow-hidden w-100" style={{ maxHeight: '300px' }}>
-                      <Carousel showThumbs={false} infiniteLoop autoPlay>
-                          {apartment.images.map((image, index) => (
-                            <div key={index}>
-                                <Image
-                                  src={image}
-                                  alt={`Apartment ${index + 1}`}
-                                  className="rounded-lg w-100"
-                                  width={300}
-                                  height={200}
-                                  style={{ maxHeight: '300px', objectFit: 'cover' }}
-                                />
-                            </div>
-                          ))}
-                      </Carousel>
-                      <span className="absolute bottom-2 right-2 bg-black text-white text-xs px-2 py-1 rounded">
-                            {apartment.images.length} zdjęć
-                        </span>
+                      {apartment.images.length > 0 ? (
+                        <Carousel showThumbs={false} infiniteLoop autoPlay>
+                            {apartment.images.map((image, index) => (
+                              <div key={index}>
+                                  <Image
+                                    src={image}
+                                    alt={`Apartment ${index + 1}`}
+                                    className="rounded-lg w-100"
+                                    width={300}
+                                    height={200}
+                                    unoptimized
+                                    style={{ maxHeight: '300px', objectFit: 'cover' }}
+                                  />
+                              </div>
+                            ))}
+                        </Carousel>
+                      ) : (
+                        <div className="text-center text-muted">Brak zdjęć</div>
+                      )}
+                      {apartment.images.length > 0 && (
+                        <span className="absolute bottom-2 right-2 bg-black text-white text-xs px-2 py-1 rounded">
+                {apartment.images.length} zdjęć
+              </span>
+                      )}
                   </div>
               </div>
           </div>

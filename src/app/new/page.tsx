@@ -1,8 +1,8 @@
-
 "use client";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react";
 import Navbar from "~/app/_components/Navbar";
 export default function RentPage() {
   const router = useRouter();
@@ -18,27 +18,15 @@ export default function RentPage() {
   const [message, setMessage] = useState(null);
 
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const { data: session, status } = useSession();
+  const isLoggedIn = status === "authenticated";
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
-    };
-
-    checkAuthStatus();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn && isLoggedIn !== null) {
-      router.push('/');
+    if (status === "unauthenticated") {
+      router.push("/");
     }
-  }, [isLoggedIn, router]);
+  }, [status, router]);
 
 
 
@@ -104,18 +92,14 @@ export default function RentPage() {
   };
 
 
-  if (isLoggedIn === null) {
+  if (status === "loading") {
     return <div className="text-center my-5">Loading...</div>;
-  }
-
-  if (!isLoggedIn) {
-    return null;
   }
 
 
   return (
     <main className="container my-4">
-      <Navbar />
+      <Navbar isLoggedIn={isLoggedIn} user={session?.user} /> {/* ✅ Pass session */}
 
       <h1 className="mb-4">Create Rental Listing</h1>
       {message && (

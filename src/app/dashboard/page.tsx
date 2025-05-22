@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Navbar from "~/app/_components/Navbar";
-import { useSession } from "next-auth/react"; // ✅ Import
+import { useSession } from "next-auth/react";
 
 export default function RegisterPage() {
-  const { data: session } = useSession();  // ✅ Get session
+  const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
 
   const [email, setEmail] = useState('');
@@ -43,7 +43,7 @@ export default function RegisterPage() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow">
-      <Navbar isLoggedIn={isLoggedIn} user={session?.user} /> {/* ✅ Pass session */}
+      <Navbar isLoggedIn={isLoggedIn} user={session?.user} />
       <h1 className="text-xl font-bold mb-4">Register</h1>
       <form onSubmit={handleRegister} className="space-y-4">
         <input

@@ -1,20 +1,33 @@
-// app/detail-view/[id]/page.tsx
-import PropertyListingPage from '~/app/_components/PropertyListingPage';
+// src/app/detail-view/[id]/page.tsx
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '~/server/auth/config'; // adjust path to your NextAuth config
+import ClientDetailPage from './ClientDetailPage';
 import { db } from '~/server/db';
+import { notFound } from 'next/navigation';
 
-export default async function DetailPage(context: { params: { id: string } }) {
-    const id = parseInt(context.params.id);
+interface DetailPageProps {
+    params: {
+        id: string;
+    };
+}
 
-    if (isNaN(id)) {
-        return <div>Invalid ID</div>;
-    }
+export default async function DetailPage({ params }: DetailPageProps) {
+    const id = parseInt(params.id, 10);
+    if (isNaN(id)) return <div>Invalid ID</div>;
+
+    const session = await getServerSession(authOptions);
+    const isLoggedIn = !!session?.user;
 
     const rental = await db.rental.findUnique({
         where: { id },
+        include: {
+            images: true,
+            rentalBookings: true,
+        },
     });
 
     if (!rental) {
-        return <div>Rental not found</div>;
+        notFound();
     }
 
     const apartmentData = {
@@ -23,12 +36,19 @@ export default async function DetailPage(context: { params: { id: string } }) {
         location: rental.location,
         size: `${rental.meterage} m²`,
         rooms: rental.rooms,
-        type: "Mieszkanie",
-        status: "Wolne",
-        heating: "Gazowe",
-        landlord: "Właściciel",
-        images: Array.isArray(rental.images) ? rental.images as string[] : [],
+        type: 'Mieszkanie',
+        status: 'Wolne',
+        heating: 'Gazowe',
+        landlord: 'Właściciel',
+        images: Array.isArray(rental.images)
+          ? rental.images.map((img) => (typeof img === 'string' ? img : img.image ?? ''))
+          : [],
+        bookings:
+          rental.rentalBookings?.map((b) => ({
+              startDate: b.startDate.toISOString(),
+              endDate: b.endDate.toISOString(),
+          })) ?? [],
     };
 
-    return <PropertyListingPage data={apartmentData} />;
+    return <ClientDetailPage data={apartmentData} isLoggedIn={isLoggedIn} user={session?.user} />;
 }

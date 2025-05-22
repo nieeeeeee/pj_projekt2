@@ -31,11 +31,6 @@ export default function Navbar(props: { currentPage: number; isLoggedIn: boolean
                             </Link>
                         </li>
                         <li className="nav-item">
-                            <Link className="nav-link" href="/sell">
-                                Sprzedaż
-                            </Link>
-                        </li>
-                        <li className="nav-item">
                             <Link className="nav-link" href="/about-us">
                                 O nas
                             </Link>
