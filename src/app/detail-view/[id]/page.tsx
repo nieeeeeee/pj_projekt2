@@ -1,17 +1,18 @@
 // src/app/detail-view/[id]/page.tsx
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '~/server/auth/config';
+import { authOptions } from '~/server/auth/config'; // adjust path to your NextAuth config
 import ClientDetailPage from './ClientDetailPage';
 import { db } from '~/server/db';
 import { notFound } from 'next/navigation';
 
 interface DetailPageProps {
-    params: Promise<{ id: string }>;  // params is a Promise here
+    params: {
+        id: string;
+    };
 }
 
 export default async function DetailPage({ params }: DetailPageProps) {
-    const resolvedParams = await params;
-    const id = parseInt(resolvedParams.id, 10);
+    const id = parseInt(params.id, 10);
     if (isNaN(id)) return <div>Invalid ID</div>;
 
     const session = await getServerSession(authOptions);
@@ -50,11 +51,5 @@ export default async function DetailPage({ params }: DetailPageProps) {
           })) ?? [],
     };
 
-    return (
-      <ClientDetailPage
-        data={apartmentData}
-        isLoggedIn={isLoggedIn}
-        user={session?.user ?? null}
-      />
-    );
+    return <ClientDetailPage data={apartmentData} isLoggedIn={isLoggedIn} user={session?.user} />;
 }
