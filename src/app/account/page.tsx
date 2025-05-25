@@ -1,5 +1,3 @@
-// Updated AccountPage.tsx with working layout and functionality
-
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -7,7 +5,6 @@ import Cookies from "js-cookie";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Navbar from "~/app/_components/Navbar";
 import Link from "next/link";
-import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 
 interface Reservation {
@@ -20,6 +17,12 @@ interface Reservation {
   location: string;
   image: string;
 }
+
+const addImagePrefixIfMissing = (img: string) => {
+  if (!img) return "";
+  if (img.startsWith("data:")) return img;
+  return `data:image/jpeg;base64,${img}`;
+};
 
 const AccountPage = () => {
   const { data: session } = useSession();
@@ -34,6 +37,7 @@ const AccountPage = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Load unconfirmed reservations from localStorage and cookies
   useEffect(() => {
     const stored = localStorage.getItem("unconfirmedReservations");
     if (stored) {
@@ -42,6 +46,7 @@ const AccountPage = () => {
         parsed.forEach((r) => {
           r.startDate = new Date(r.startDate);
           r.endDate = new Date(r.endDate);
+          r.image = addImagePrefixIfMissing(r.image);
         });
         setUnconfirmedReservations(parsed);
       } catch {
@@ -62,7 +67,7 @@ const AccountPage = () => {
           endDate: new Date(end),
           price: 6000,
           location: "Ołtaszyn, Wrocław",
-          image: "",
+          image: "", // no image for this mock
         };
         setUnconfirmedReservations((prev) => [...prev, mockReservation]);
         Cookies.remove("selectedDates");
@@ -74,10 +79,38 @@ const AccountPage = () => {
     setIsLoading(false);
   }, []);
 
+  // Fetch confirmed reservations from the backend
+  useEffect(() => {
+    async function fetchConfirmedReservations() {
+      if (!session?.user) return;
+
+      try {
+        const res = await fetch("/api/reservations");
+        if (!res.ok) throw new Error("Failed to fetch confirmed reservations");
+        const data = await res.json();
+
+        const formatted = data.map((r: any) => ({
+          ...r,
+          startDate: new Date(r.startDate),
+          endDate: new Date(r.endDate),
+          image: addImagePrefixIfMissing(r.image),
+        }));
+
+        setReservations(formatted);
+      } catch (error) {
+        console.error("Error fetching confirmed reservations:", error);
+      }
+    }
+
+    fetchConfirmedReservations();
+  }, [session]);
+
+  // Save unconfirmed reservations to localStorage
   useEffect(() => {
     localStorage.setItem("unconfirmedReservations", JSON.stringify(unconfirmedReservations));
   }, [unconfirmedReservations]);
 
+  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -135,8 +168,24 @@ const AccountPage = () => {
       }
 
       alert("Zakup potwierdzony!");
-      setUnconfirmedReservations((prev) => prev.filter((r) => r.id !== reservation.id));
-      setReservations((prev) => [...prev, reservation]);
+
+      // Remove from unconfirmed
+      setUnconfirmedReservations((prev) =>
+        prev.filter((r) => r.id !== reservation.id)
+      );
+
+      // Refresh confirmed reservations from API
+      const confirmedRes = await fetch("/api/reservations");
+      if (confirmedRes.ok) {
+        const data = await confirmedRes.json();
+        const formatted = data.map((r: any) => ({
+          ...r,
+          startDate: new Date(r.startDate),
+          endDate: new Date(r.endDate),
+          image: addImagePrefixIfMissing(r.image),
+        }));
+        setReservations(formatted);
+      }
     } catch (error) {
       console.error("Error confirming purchase:", error);
       alert("Błąd sieci, spróbuj ponownie.");
@@ -145,12 +194,10 @@ const AccountPage = () => {
 
   const renderImageOrFallback = (src: string, alt: string) =>
     src ? (
-      <Image
+      <img
         src={src}
         alt={alt}
-        fill
-        className="rounded-start"
-        style={{ objectFit: "cover", height: "200px", width: "100%" }}
+        style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "0.25rem 0 0 0.25rem" }}
       />
     ) : (
       <div
@@ -165,145 +212,131 @@ const AccountPage = () => {
     <>
       <Navbar isLoggedIn={isLoggedIn} user={session?.user} />
       <div className="container py-5">
-        <div className="row">
+        <div className="row g-4">
           {/* Sidebar */}
-          <div className="col-md-3">
-            <div className="card mb-4">
-              <div className="card-body text-center">
-                <div className="position-relative" style={{ width: "150px", height: "150px" }}>
-                  <Image
+          <div className="col-lg-3">
+            <div className="card text-center mb-4 p-3">
+              <div className="mx-auto position-relative" style={{ width: "140px", height: "140px" }}>
+                {/* Use img for user image as well if base64 */}
+                {userImage.startsWith("data:") || userImage.startsWith("/") ? (
+                  <img
                     src={userImage}
                     alt="User"
-                    fill
-                    className="rounded-circle"
-                    style={{ objectFit: "cover" }}
+                    style={{ width: "140px", height: "140px", borderRadius: "50%", objectFit: "cover", border: "1px solid #ccc" }}
                   />
-                </div>
-                <h4 className="mt-3">{session?.user?.name || "Użytkownik"}</h4>
-                <p className="text-muted">{session?.user?.email}</p>
-                <div ref={dropdownRef} className="dropdown">
-                  <button
-                    className="btn btn-sm btn-outline-secondary dropdown-toggle w-100"
-                    onClick={toggleDropdown}
-                  >
-                    Zmień ikonę
-                  </button>
-                  <ul className={`dropdown-menu p-2${dropdownOpen ? " show" : ""}`}>
-                    <li>
-                      <label className="form-label btn btn-light w-100 m-0">
-                        Wgraj zdjęcie
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="d-none"
-                          onChange={handleImageChange}
-                        />
-                      </label>
-                    </li>
-                  </ul>
-                </div>
+                ) : (
+                  <img
+                    src={addImagePrefixIfMissing(userImage)}
+                    alt="User"
+                    style={{ width: "140px", height: "140px", borderRadius: "50%", objectFit: "cover", border: "1px solid #ccc" }}
+                  />
+                )}
+              </div>
+              <h5 className="mt-3">{session?.user?.name || "Użytkownik"}</h5>
+              <p className="text-muted">{session?.user?.email}</p>
+
+              <div ref={dropdownRef} className="dropdown w-100">
+                <button
+                  className="btn btn-outline-secondary btn-sm dropdown-toggle w-100"
+                  onClick={toggleDropdown}
+                >
+                  Zmień ikonę
+                </button>
+                <ul className={`dropdown-menu p-2${dropdownOpen ? " show" : ""}`}>
+                  <li>
+                    <label className="btn btn-light w-100 mb-0">
+                      Wgraj zdjęcie
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="d-none"
+                        onChange={handleImageChange}
+                      />
+                    </label>
+                  </li>
+                </ul>
               </div>
             </div>
-            <div className="card">
+
+            <div className="card mb-4">
               <div className="list-group list-group-flush">
-                <a className="list-group-item list-group-item-action">Ustawienia konta</a>
-                <a className="list-group-item list-group-item-action">Historia płatności</a>
+                <button className="list-group-item list-group-item-action">Ustawienia konta</button>
+                <button className="list-group-item list-group-item-action">Historia płatności</button>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="list-group-item list-group-item-action text-start"
+                  className="list-group-item list-group-item-action text-start text-danger"
                 >
                   Wyloguj się
                 </button>
               </div>
             </div>
-            <div className="mt-3 text-center">
-              <Link href="/new" className="btn btn-primary w-100">
-                Dodaj ogłoszenie
-              </Link>
-            </div>
+
+            <Link href="/new" className="btn btn-primary w-100">
+              Stwórz nowe ogłoszenie
+            </Link>
           </div>
 
-          {/* Main Section */}
-          <div className="col-md-9">
-            <div className="card mb-4">
-              <div className="card-header">
-                <h4>Twoje nierozpatrzone zakupy</h4>
-              </div>
-              <div className="card-body">
-                {unconfirmedReservations.length === 0 ? (
-                  <div className="alert alert-info">Brak nierozpatrzonych zakupów.</div>
-                ) : (
-                  unconfirmedReservations.map((reservation) => (
-                    <div key={reservation.id} className="card mb-3">
-                      <div className="row g-0">
-                        <div className="col-md-4 position-relative">
-                          {renderImageOrFallback(reservation.image, reservation.propertyTitle)}
-                        </div>
-                        <div className="col-md-8">
-                          <div className="card-body">
-                            <h5>{reservation.propertyTitle}</h5>
-                            <p className="text-muted">{reservation.location}</p>
-                            <span className="badge bg-primary mb-2">
-                              {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
-                            </span>
-                            <p className="fw-bold text-success">
-                              {reservation.price} zł / miesiąc
-                            </p>
-                            <button
-                              className="btn btn-success me-2"
-                              onClick={() => handleConfirmPurchase(reservation)}
-                            >
-                              Potwierdź
-                            </button>
-                            <button
-                              className="btn btn-outline-danger"
-                              onClick={() => setUnconfirmedReservations(prev => prev.filter(r => r.id !== reservation.id))}
-                            >
-                              Anuluj
-                            </button>
-                          </div>
-                        </div>
+          {/* Main content */}
+          <div className="col-lg-9">
+            <h3>Twoje rezerwacje</h3>
+            {isLoading ? (
+              <p>Ładowanie...</p>
+            ) : reservations.length === 0 ? (
+              <p>Brak potwierdzonych rezerwacji.</p>
+            ) : (
+              <div className="row g-3">
+                {reservations.map((reservation) => (
+                  <div key={reservation.id} className="col-md-6">
+                    <div className="card d-flex flex-row">
+                      <div style={{ width: "40%" }}>
+                        {renderImageOrFallback(reservation.image, reservation.propertyTitle)}
+                      </div>
+                      <div className="card-body d-flex flex-column justify-content-between">
+                        <h5 className="card-title">{reservation.propertyTitle}</h5>
+                        <p className="card-text">
+                          Lokalizacja: {reservation.location} <br />
+                          Cena: {reservation.price} PLN <br />
+                          Termin: {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
+                        </p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-header">
-                <h4>Twoje rezerwacje</h4>
-              </div>
-              <div className="card-body">
-                {reservations.length === 0 ? (
-                  <div className="alert alert-info">
-                    Nie masz żadnych aktywnych rezerwacji.
                   </div>
-                ) : (
-                  reservations.map((reservation) => (
-                    <div key={reservation.id} className="card mb-3">
-                      <div className="row g-0">
-                        <div className="col-md-4 position-relative">
-                          {renderImageOrFallback(reservation.image, reservation.propertyTitle)}
-                        </div>
-                        <div className="col-md-8">
-                          <div className="card-body">
-                            <h5>{reservation.propertyTitle}</h5>
-                            <p className="text-muted">{reservation.location}</p>
-                            <span className="badge bg-primary mb-2">
-                              {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
-                            </span>
-                            <p className="fw-bold text-success">
-                              {reservation.price} zł / miesiąc
-                            </p>
-                          </div>
-                        </div>
+                ))}
+              </div>
+            )}
+
+            <hr />
+
+            <h3>Twoje niezrealizowane zakupy</h3>
+            {unconfirmedReservations.length === 0 ? (
+              <p>Brak niezrealizowanych zakupów.</p>
+            ) : (
+              <div className="row g-3">
+                {unconfirmedReservations.map((reservation) => (
+                  <div key={reservation.id} className="col-md-6">
+                    <div className="card d-flex flex-row">
+                      <div style={{ width: "40%" }}>
+                        {renderImageOrFallback(reservation.image, reservation.propertyTitle)}
+                      </div>
+                      <div className="card-body d-flex flex-column justify-content-between">
+                        <h5 className="card-title">{reservation.propertyTitle}</h5>
+                        <p className="card-text">
+                          Lokalizacja: {reservation.location} <br />
+                          Cena: {reservation.price} PLN <br />
+                          Termin: {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
+                        </p>
+                        <button
+                          className="btn btn-success"
+                          onClick={() => handleConfirmPurchase(reservation)}
+                        >
+                          Potwierdź zakup
+                        </button>
                       </div>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

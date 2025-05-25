@@ -42,7 +42,7 @@ export const postRouter = createTRPCRouter({
         };
       } catch (error) {
         console.error("Error creating post:", error);
-        throw new Error("Failed to create post");
+        throw new Error("Failed to user post");
       }
     }),
 

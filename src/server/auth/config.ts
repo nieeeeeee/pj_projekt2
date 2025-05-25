@@ -1,8 +1,8 @@
-import type { NextAuthOptions, Session } from "next-auth"; // ✅ FIX 1: use type import
+import type { NextAuthOptions, Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { db } from "~/server/db"; // ✅ ensure this points to your Prisma client
+import { db } from "~/server/db"; // your Prisma client
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -10,39 +10,30 @@ export const authOptions: NextAuthOptions = {
       id: "credentials",
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email", type: "email", placeholder: "you@example.com" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email as string;
-        const password = credentials?.password as string;
-
-        if (!email || !password) return null;
+        if (!credentials?.email || !credentials?.password) return null;
 
         const user = await db.user.findUnique({
-          where: { email },
+          where: { email: credentials.email },
         });
 
-        if (!user?.password) return null;
+        if (!user) return null;
 
-        const isValid = await compare(password, user.password);
+        const isValid = await compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        return {
-          id: String(user.id), // ✅ FIX 2: ensure id is string
-          email: user.email,
-          name: user.name,
-        };
+        return { id: String(user.id), email: user.email, name: user.name };
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   callbacks: {
-    async session({ session, token }: { session: Session; token: JWT }) {
+    async session({ session, token }) {
       if (session.user && token.sub) {
-        session.user.id = token.sub; // ✅ FIX 3: manually extend user if needed
+        session.user.id = token.sub;
       }
       return session;
     },

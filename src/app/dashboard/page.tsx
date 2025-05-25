@@ -1,85 +1,84 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Navbar from "~/app/_components/Navbar";
-import { useSession } from "next-auth/react";
+import React, { useState } from "react";
 
-export default function RegisterPage() {
-  const { data: session } = useSession();
-  const isLoggedIn = !!session?.user;
+interface BookingSelectorProps {
+  rentalId: number;
+  rentalTitle: string;
+  rentalPrice: number;
+  rentalLocation: string;
+  rentalImage?: string;
+}
 
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const BookingSelector: React.FC<BookingSelectorProps> = ({
+                                                           rentalId,
+                                                           rentalTitle,
+                                                           rentalPrice,
+                                                           rentalLocation,
+                                                           rentalImage = "",
+                                                         }) => {
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    const res = await fetch('/api/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, name, password }),
-    });
-
-    if (res.status === 201) {
-      setSuccess('Account created successfully. You can now log in.');
-      setEmail('');
-      setName('');
-      setPassword('');
-    } else if (res.status === 409) {
-      setError('This email is already registered. Try logging in instead.');
-    } else if (res.status === 400) {
-      setError('Please fill out all required fields.');
-    } else {
-      setError('Something went wrong. Please try again later.');
+  const handleAddToBasket = () => {
+    if (!startDate || !endDate) {
+      alert("Proszę wybrać datę rozpoczęcia i zakończenia rezerwacji.");
+      return;
     }
+
+    const newBooking = {
+      rentalId,
+      rentalTitle,
+      rentalPrice,
+      rentalLocation,
+      rentalImage,
+      startDate,
+      endDate,
+    };
+
+    // Retrieve existing bookings from localStorage
+    const existing = localStorage.getItem("unconfirmedBookings");
+    const bookings = existing ? JSON.parse(existing) : [];
+
+    bookings.push(newBooking);
+    localStorage.setItem("unconfirmedBookings", JSON.stringify(bookings));
+
+    alert("Dodano rezerwację do koszyka! Przejdź do strony konta, aby potwierdzić.");
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-4 border rounded shadow">
-      <Navbar isLoggedIn={isLoggedIn} user={session?.user} />
-      <h1 className="text-xl font-bold mb-4">Register</h1>
-      <form onSubmit={handleRegister} className="space-y-4">
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-3 py-2 border rounded"
-          required
-        />
+    <div className="p-4 rounded-xl shadow-md border w-fit space-y-2 bg-white">
+      <h3 className="text-lg font-semibold">Wybierz daty rezerwacji</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <label className="flex flex-col text-sm font-medium">
+          Od:
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            min={new Date().toISOString().split("T")[0]}
+            className="border rounded px-2 py-1"
+          />
+        </label>
+        <label className="flex flex-col text-sm font-medium">
+          Do:
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            min={startDate || new Date().toISOString().split("T")[0]}
+            className="border rounded px-2 py-1"
+          />
+        </label>
         <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          onClick={handleAddToBasket}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          Register
+          Dodaj do koszyka
         </button>
-      </form>
-
-      {error && <p className="mt-4 text-red-600">{error}</p>}
-      {success && <p className="mt-4 text-green-600">{success}</p>}
+      </div>
     </div>
   );
-}
+};
+
+export default BookingSelector;

@@ -87,7 +87,7 @@ export default function RentPage() {
         setMessage(data.message || "Something went wrong");
       }
     } catch (error) {
-      setMessage('Failed to create rental listing');
+      setMessage('Failed to user rental listing');
     }
   };
 

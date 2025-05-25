@@ -18,7 +18,7 @@ model Rental {
   description String?
   images      RentalImage[] @relation("RentalToImages")
 
-  rentalBookings RentalBooking[]
+  rentalBookings RentalBooking[]  // fixed here, lowercase plural
 
   @@map("rentals")
 }
@@ -40,10 +40,10 @@ model User {
   emailVerified DateTime? @db.Timestamptz(6)
   image         String?
 
-  accounts Account[]
-  sessions Session[]
+  accounts      Account[]
+  sessions      Session[]
 
-  rentalBookings RentalBooking[]
+  rentalBookings RentalBooking[]  // fixed here, lowercase plural
 
   @@map("users")
 }
@@ -89,11 +89,12 @@ model VerificationToken {
 }
 
 model RentalBooking {
-  id        Int      @id @default(autoincrement())
-  rentalId  Int
-  userId    Int
-  startDate DateTime
-  endDate   DateTime
+  id         Int      @id @default(autoincrement())
+  rentalId   Int
+  userId     Int
+  startDate  DateTime
+  endDate    DateTime
+  confirmed  Boolean  @default(false)
 
   rental Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -103,3 +104,4 @@ model RentalBooking {
 
   @@map("rental_bookings")
 }
+

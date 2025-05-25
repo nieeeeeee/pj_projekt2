@@ -1,14 +1,13 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { Carousel } from "react-responsive-carousel";
-import DatePicker from "react-datepicker";
-import Cookies from "js-cookie";
-import "react-datepicker/dist/react-datepicker.css";
-import "react-responsive-carousel/lib/styles/carousel.min.css";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "~/styles/calendar.css";
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { Carousel } from 'react-responsive-carousel';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '~/styles/calendar.css';
 
 interface Booking {
   startDate: string;
@@ -16,6 +15,7 @@ interface Booking {
 }
 
 interface PropertyData {
+  id: number; // rental id, needed for booking API
   price: number;
   title: string;
   location: string;
@@ -26,19 +26,18 @@ interface PropertyData {
   heating: string;
   landlord: string;
   images: string[];
-  bookings?: Booking[]; // Add bookings here
+  bookings?: Booking[];
 }
 
 export default function PropertyListingPage({ data }: { data: PropertyData }) {
-  const [selectedDates, setSelectedDates] = useState<[Date | null, Date | null]>([
-    null,
-    null,
-  ]);
+  const [selectedDates, setSelectedDates] = useState<[Date | null, Date | null]>([null, null]);
   const [rentedDates, setRentedDates] = useState<Date[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [bookingMessage, setBookingMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Helper to get all dates between start and end inclusive
+    // Get all dates between start and end inclusive helper
     const getDatesInRange = (start: Date, end: Date) => {
       const dates = [];
       const curr = new Date(start);
@@ -49,75 +48,68 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
       return dates;
     };
 
-    // Convert bookings into array of disabled dates
     if (data.bookings && data.bookings.length > 0) {
-      const disabledDates = data.bookings.flatMap((b) =>
+      const disabledDates = data.bookings.flatMap(b =>
         getDatesInRange(new Date(b.startDate), new Date(b.endDate))
       );
       setRentedDates(disabledDates);
     } else {
       setRentedDates([]);
     }
-
-    // Restore selected dates from cookies if present
-    const savedDates = Cookies.get("selectedDates");
-    if (savedDates) {
-      try {
-        const parsed = JSON.parse(savedDates) as [string, string];
-        if (
-          Array.isArray(parsed) &&
-          parsed.length === 2 &&
-          typeof parsed[0] === "string" &&
-          typeof parsed[1] === "string"
-        ) {
-          const [start, end] = parsed;
-          setSelectedDates([new Date(start), new Date(end)]);
-        }
-      } catch (error) {
-        console.error("Error parsing saved dates:", error);
-      }
-    }
   }, [data.bookings]);
 
   const handleDateChange = (dates: [Date | null, Date | null]) => {
     const [start, end] = dates;
     setSelectionError(null);
+    setBookingMessage(null);
 
     if (start && end) {
-      // Check if any rented date falls within the selected range
-      const isRentedDateInRange = rentedDates.some(
+      // Check if selected range overlaps with rented dates
+      const overlap = rentedDates.some(
         (rentedDate) => rentedDate >= start && rentedDate <= end
       );
 
-      if (isRentedDateInRange) {
+      if (overlap) {
         setSelectedDates([start, null]);
-        setSelectionError(
-          "Wybrana data zawiera już zarezerwowane dni. Proszę wybrać inny zakres."
-        );
+        setSelectionError('Wybrana data zawiera już zarezerwowane dni. Proszę wybrać inny zakres.');
         return;
       }
-
-      Cookies.set(
-        "selectedDates",
-        JSON.stringify([start.toISOString(), end.toISOString()]),
-        { expires: 7 }
-      );
     }
-
     setSelectedDates(dates);
   };
 
-  const handleSaveDates = () => {
-    if (selectedDates[0] && selectedDates[1]) {
-      Cookies.set(
-        "selectedDates",
-        JSON.stringify([
-          selectedDates[0].toISOString(),
-          selectedDates[1].toISOString(),
-        ]),
-        { expires: 7 }
-      );
-      alert("Termin został zarezerwowany pomyślnie!");
+  const handleSaveDates = async () => {
+    if (!selectedDates[0] || !selectedDates[1]) return;
+
+    setIsSaving(true);
+    setSelectionError(null);
+    setBookingMessage(null);
+
+    try {
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rentalId: data.id,
+          startDate: selectedDates[0].toISOString(),
+          endDate: selectedDates[1].toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setSelectionError(errorData.message || 'Błąd podczas zapisywania rezerwacji.');
+      } else {
+        setBookingMessage('Termin został zarezerwowany pomyślnie!');
+        // Optionally clear selected dates or refresh booking list
+        setSelectedDates([null, null]);
+      }
+    } catch (error) {
+      setSelectionError('Wystąpił błąd sieci. Spróbuj ponownie.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -145,7 +137,7 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
             {data.images.map((img, idx) => (
               <div
                 key={idx}
-                style={{ height: "400px" }}
+                style={{ height: '400px' }}
                 className="d-flex justify-content-center align-items-center"
               >
                 <Image
@@ -212,41 +204,37 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
                     rentedDate.getMonth() === date.getMonth() &&
                     rentedDate.getFullYear() === date.getFullYear()
                 );
-                return isRented ? "rented-date" : undefined;
+                return isRented ? 'rented-date' : undefined;
               }}
               monthsShown={1}
               showPopperArrow={false}
-              formatWeekDay={(nameOfDay) =>
-                nameOfDay.substr(0, 2).toUpperCase()
-              }
+              formatWeekDay={(nameOfDay) => nameOfDay.substr(0, 2).toUpperCase()}
             />
           </div>
         </div>
         {selectionError && (
-          <div
-            className="alert alert-warning mt-2 text-center"
-            role="alert"
-          >
+          <div className="alert alert-warning mt-2 text-center" role="alert">
             {selectionError}
           </div>
         )}
+        {bookingMessage && (
+          <div className="alert alert-success mt-2 text-center" role="alert">
+            {bookingMessage}
+          </div>
+        )}
         {selectedDates[0] && selectedDates[1] && (
-          <div
-            className="alert alert-info mt-2 text-center"
-            role="alert"
-          >
-            Wybrano termin:{" "}
-            {selectedDates[0].toLocaleDateString("pl-PL")} -{" "}
-            {selectedDates[1].toLocaleDateString("pl-PL")}
+          <div className="alert alert-info mt-2 text-center" role="alert">
+            Wybrano termin: {selectedDates[0].toLocaleDateString('pl-PL')} -{' '}
+            {selectedDates[1].toLocaleDateString('pl-PL')}
           </div>
         )}
         <div className="d-flex justify-content-center">
           <button
             onClick={handleSaveDates}
             className="btn btn-primary px-4 py-2 reserve-button"
-            disabled={!selectedDates[0] || !selectedDates[1]}
+            disabled={!selectedDates[0] || !selectedDates[1] || isSaving}
           >
-            Zarezerwuj termin
+            {isSaving ? 'Rezerwacja...' : 'Zarezerwuj termin'}
           </button>
         </div>
       </div>
@@ -255,10 +243,11 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
         <h2 className="h4 fw-bold mb-4">Skontaktuj się</h2>
         <form className="d-flex flex-column gap-2">
           <input type="text" placeholder="Imię" className="form-control" required />
-          <input type="email" placeholder="Email" className="form-control" required />
-          <input type="tel" placeholder="Telefon" className="form-control" required />
-          <textarea placeholder="Wiadomość" className="form-control" rows={4} required></textarea>
-          <button type="submit" className="btn btn-primary">Wyślij wiadomość</button>
+          <input type="email" placeholder="Adres email" className="form-control" required />
+          <textarea placeholder="Wiadomość" rows={4} className="form-control" required />
+          <button type="submit" className="btn btn-primary mt-2">
+            Wyślij wiadomość
+          </button>
         </form>
       </div>
     </div>
