@@ -1,18 +1,17 @@
-// src/app/detail-view/[id]/page.tsx
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '~/server/auth/config'; // adjust path to your NextAuth config
+import { authOptions } from '~/server/auth/config';
 import ClientDetailPage from './ClientDetailPage';
 import { db } from '~/server/db';
 import { notFound } from 'next/navigation';
 
 interface DetailPageProps {
-    params: {
-        id: string;
-    };
+    params: Promise<{ id: string }>; // ✅ this fixes the runtime issue
 }
 
 export default async function DetailPage({ params }: DetailPageProps) {
-    const id = parseInt(params.id, 10);
+    const { id: rawId } = await params;
+    const id = parseInt(rawId, 10);
+
     if (isNaN(id)) return <div>Invalid ID</div>;
 
     const session = await getServerSession(authOptions);
@@ -42,7 +41,9 @@ export default async function DetailPage({ params }: DetailPageProps) {
         heating: 'Gazowe',
         landlord: 'Właściciel',
         images: Array.isArray(rental.images)
-          ? rental.images.map((img) => (typeof img === 'string' ? img : img.image ?? ''))
+          ? rental.images.map((img) =>
+            typeof img === 'string' ? img : img.image ?? '',
+          )
           : [],
         bookings:
           rental.rentalBookings?.map((b) => ({
@@ -51,5 +52,11 @@ export default async function DetailPage({ params }: DetailPageProps) {
           })) ?? [],
     };
 
-    return <ClientDetailPage data={apartmentData} isLoggedIn={isLoggedIn} user={session?.user} />;
+    return (
+      <ClientDetailPage
+        data={apartmentData}
+        isLoggedIn={isLoggedIn}
+        user={session?.user ?? null}
+      />
+    );
 }

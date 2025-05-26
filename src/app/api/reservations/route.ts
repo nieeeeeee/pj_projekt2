@@ -1,34 +1,35 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "~/server/auth";
-import { db } from "~/server/db";
+import { NextResponse } from 'next/server';
+import { db } from '~/server/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '~/server/auth/config';
 
-export async function GET(request: Request) {
+export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const reservations = await db.rentalBooking.findMany({
-      where: { user: { email: session.user.email } },
-      include: { rental: true },
-    });
+  const { rentalId, startDate, endDate } = await req.json();
 
-    const formatted = reservations.map((r) => ({
-      id: r.id,
-      propertyId: String(r.rentalId),
-      propertyTitle: r.rental.title,
-      startDate: r.startDate,
-      endDate: r.endDate,
-      price: r.rental.price,
-      location: r.rental.location,
-      image: r.rental.images?.[0]?.url || "",
-    }));
-
-    return NextResponse.json(formatted);
-  } catch (error) {
-    console.error("Failed to get reservations:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+  if (!rentalId || !startDate || !endDate) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
+
+  const user = await db.user.findUnique({ where: { email: session.user.email } });
+
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const booking = await db.rentalBooking.create({
+    data: {
+      rentalId,
+      userId: user.id,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      confirmed: false,
+    },
+  });
+
+  return NextResponse.json(booking);
 }
