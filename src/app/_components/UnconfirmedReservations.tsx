@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 
 interface Reservation {
   id: string;
@@ -23,12 +22,13 @@ interface Props {
 const UnconfirmedReservations: React.FC<Props> = ({ reservations, onConfirm, onCancel }) => {
   const formatDate = (date: Date) => new Date(date).toLocaleDateString("pl-PL");
 
-  const renderImageOrFallback = (src: string, alt: string) =>
-    src ? (
-      <Image
+  const renderImageOrFallback = (src: string, alt: string) => {
+    const isValidBase64Image = src && src.startsWith("data:image/");
+
+    return isValidBase64Image ? (
+      <img
         src={src}
         alt={alt}
-        fill
         className="rounded-start"
         style={{ objectFit: "cover", height: "200px", width: "100%" }}
       />
@@ -40,6 +40,7 @@ const UnconfirmedReservations: React.FC<Props> = ({ reservations, onConfirm, onC
         Brak zdjęcia
       </div>
     );
+  };
 
   const handleConfirm = async (r: Reservation) => {
     try {

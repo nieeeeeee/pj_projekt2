@@ -163,7 +163,7 @@ const AccountPage = () => {
               <div className="mx-auto position-relative" style={{ width: "140px", height: "140px" }}>
                 <img
                   src={addImagePrefixIfMissing(userImage)}
-                  alt="User"
+                  alt=""
                   style={{
                     width: "140px",
                     height: "140px",

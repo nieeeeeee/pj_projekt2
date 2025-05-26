@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 
 interface Reservation {
   id: string;
@@ -18,15 +17,16 @@ interface Props {
   reservations: Reservation[];
 }
 
-const UnconfirmedReservations: React.FC<Props> = ({ reservations }) => {
+const ConfirmedReservations: React.FC<Props> = ({ reservations }) => {
   const formatDate = (date: Date) => new Date(date).toLocaleDateString("pl-PL");
 
-  const renderImageOrFallback = (src: string, alt: string) =>
-    src ? (
-      <Image
+  const renderImageOrFallback = (src: string, alt: string) => {
+    const isValidBase64Image = src && src.startsWith("data:image/");
+
+    return isValidBase64Image ? (
+      <img
         src={src}
         alt={alt}
-        fill
         className="rounded-start"
         style={{ objectFit: "cover", height: "200px", width: "100%" }}
       />
@@ -38,6 +38,7 @@ const UnconfirmedReservations: React.FC<Props> = ({ reservations }) => {
         Brak zdjęcia
       </div>
     );
+  };
 
   if (reservations.length === 0) {
     return <div className="alert alert-info">Nie masz żadnych niezrealizowanych rezerwacji.</div>;
@@ -68,4 +69,4 @@ const UnconfirmedReservations: React.FC<Props> = ({ reservations }) => {
   );
 };
 
-export default UnconfirmedReservations;
+export default ConfirmedReservations;

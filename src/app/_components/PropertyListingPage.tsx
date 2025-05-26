@@ -37,7 +37,6 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Get all dates between start and end inclusive helper
     const getDatesInRange = (start: Date, end: Date) => {
       const dates = [];
       const curr = new Date(start);
@@ -49,11 +48,13 @@ export default function PropertyListingPage({ data }: { data: PropertyData }) {
     };
 
     if (data.bookings && data.bookings.length > 0) {
-      const disabledDates = data.bookings.flatMap(b =>
+      const confirmedBookings = data.bookings.filter(b => b.confirmed);
+      const disabledDates = confirmedBookings.flatMap(b =>
         getDatesInRange(new Date(b.startDate), new Date(b.endDate))
       );
       setRentedDates(disabledDates);
-    } else {
+    }
+else {
       setRentedDates([]);
     }
   }, [data.bookings]);
