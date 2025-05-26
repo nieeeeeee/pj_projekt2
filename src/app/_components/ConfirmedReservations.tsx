@@ -1,4 +1,3 @@
-// components/ConfirmedReservations.tsx
 "use client";
 
 import React from "react";
@@ -19,8 +18,8 @@ interface Props {
   reservations: Reservation[];
 }
 
-const ConfirmedReservations: React.FC<Props> = ({ reservations }) => {
-  const formatDate = (date: Date) => date.toLocaleDateString("pl-PL");
+const UnconfirmedReservations: React.FC<Props> = ({ reservations }) => {
+  const formatDate = (date: Date) => new Date(date).toLocaleDateString("pl-PL");
 
   const renderImageOrFallback = (src: string, alt: string) =>
     src ? (
@@ -41,7 +40,7 @@ const ConfirmedReservations: React.FC<Props> = ({ reservations }) => {
     );
 
   if (reservations.length === 0) {
-    return <div className="alert alert-info">Nie masz żadnych aktywnych rezerwacji.</div>;
+    return <div className="alert alert-info">Nie masz żadnych niezrealizowanych rezerwacji.</div>;
   }
 
   return (
@@ -56,10 +55,10 @@ const ConfirmedReservations: React.FC<Props> = ({ reservations }) => {
               <div className="card-body">
                 <h5>{reservation.propertyTitle}</h5>
                 <p className="text-muted">{reservation.location}</p>
-                <span className="badge bg-primary mb-2">
+                <span className="badge bg-warning mb-2">
                   {formatDate(reservation.startDate)} - {formatDate(reservation.endDate)}
                 </span>
-                <p className="fw-bold text-success">{reservation.price} zł / miesiąc</p>
+                <p className="fw-bold text-warning">{reservation.price} zł / miesiąc</p>
               </div>
             </div>
           </div>
@@ -69,4 +68,4 @@ const ConfirmedReservations: React.FC<Props> = ({ reservations }) => {
   );
 };
 
-export default ConfirmedReservations;
+export default UnconfirmedReservations;

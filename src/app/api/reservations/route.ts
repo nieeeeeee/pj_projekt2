@@ -3,6 +3,30 @@ import { db } from '~/server/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '~/server/auth/config';
 
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const user = await db.user.findUnique({ where: { email: session.user.email } });
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const confirmed = await db.rentalBooking.findMany({
+    where: { userId: user.id, confirmed: true },
+    include: { rental: true },
+  });
+
+  const unconfirmed = await db.rentalBooking.findMany({
+    where: { userId: user.id, confirmed: false },
+    include: { rental: true },
+  });
+
+  return NextResponse.json({ confirmed, unconfirmed });
+}
+
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.email) {
