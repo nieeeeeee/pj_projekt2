@@ -35,6 +35,11 @@ export default function Navbar(props: { currentPage: number; isLoggedIn: boolean
                                 O nas
                             </Link>
                         </li>
+                      <li className="nav-item">
+                        <Link className="nav-link" href="/faq">
+                          FAQ
+                        </Link>
+                      </li>
                     </ul>
                     <ul className="navbar-nav ms-auto">
                         {props.isLoggedIn ? (
